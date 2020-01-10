@@ -76,3 +76,7 @@ bind(
     name = "error_prone_annotations",
     actual = "@error_prone_annotations_maven//jar",
 )
+
+load("@bazel_skylib//lib:unittest.bzl", "register_unittest_toolchains")
+
+register_unittest_toolchains()
