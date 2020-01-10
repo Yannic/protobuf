@@ -8,9 +8,9 @@ def protobuf_deps():
     if not native.existing_rule("bazel_skylib"):
         http_archive(
             name = "bazel_skylib",
-            sha256 = "bbccf674aa441c266df9894182d80de104cabd19be98be002f6d478aaa31574d",
-            strip_prefix = "bazel-skylib-2169ae1c374aab4a09aa90e65efe1a3aad4e279b",
-            urls = ["https://github.com/bazelbuild/bazel-skylib/archive/2169ae1c374aab4a09aa90e65efe1a3aad4e279b.tar.gz"],
+            sha256 = "7db2a228bd914bb739fe5c6d2d9fd8bdd1199d022ac4ade762584ff3dc90bc80",
+            strip_prefix = "bazel-skylib-b2b4471332abdbf8979c89ca5e2cbb4f3a2bdc0f",
+            urls = ["https://github.com/bazelbuild/bazel-skylib/archive/b2b4471332abdbf8979c89ca5e2cbb4f3a2bdc0f.tar.gz"],
         )
 
     if not native.existing_rule("zlib"):
