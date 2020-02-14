@@ -153,12 +153,17 @@ cc_library(
         "src/google/protobuf/stubs/time.cc",
         "src/google/protobuf/wire_format_lite.cc",
     ],
-    hdrs = glob([
-        "src/google/protobuf/**/*.h",
-        "src/google/protobuf/**/*.inc",
-    ]),
+    hdrs = glob(
+        [
+            "src/google/protobuf/**/*.h",
+            "src/google/protobuf/**/*.inc",
+        ],
+        exclude = [
+            "src/google/protobuf/testing/**",
+        ],
+    ),
     copts = COPTS,
-    includes = ["src/"],
+    strip_include_prefix = "src",
     linkopts = LINK_OPTS,
     visibility = ["//visibility:public"],
 )
@@ -169,14 +174,12 @@ PROTOBUF_DEPS = select({
 })
 
 cc_library(
-    name = "protobuf",
+    name = "protobuf_lib",
     srcs = [
         # AUTOGEN(protobuf_srcs)
         "src/google/protobuf/any.cc",
         "src/google/protobuf/any.pb.cc",
         "src/google/protobuf/api.pb.cc",
-        "src/google/protobuf/compiler/importer.cc",
-        "src/google/protobuf/compiler/parser.cc",
         "src/google/protobuf/descriptor.cc",
         "src/google/protobuf/descriptor.pb.cc",
         "src/google/protobuf/descriptor_database.cc",
@@ -225,15 +228,51 @@ cc_library(
         "src/google/protobuf/wire_format.cc",
         "src/google/protobuf/wrappers.pb.cc",
     ],
-    hdrs = glob([
-        "src/**/*.h",
-        "src/**/*.inc",
-    ]),
+    hdrs = glob(
+        [
+            "src/google/protobuf/**/*.h",
+            "src/google/protobuf/**/*.inc",
+        ],
+        exclude = [
+            "src/google/protobuf/testing/**",
+        ],
+    ),
     copts = COPTS,
-    includes = ["src/"],
+    strip_include_prefix = "src",
     linkopts = LINK_OPTS,
     visibility = ["//visibility:public"],
     deps = [":protobuf_lite"] + PROTOBUF_DEPS,
+)
+
+cc_library(
+    name = "protobuf_importer",
+    srcs = [
+        # AUTOGEN(protobuf_importer_srcs)
+        "src/google/protobuf/compiler/importer.cc",
+        "src/google/protobuf/compiler/parser.cc",
+    ],
+    hdrs = [
+        # AUTOGEN(protobuf_importer_hdrs)
+        "src/google/protobuf/compiler/importer.h",
+        "src/google/protobuf/compiler/parser.h",
+    ],
+    copts = COPTS,
+    strip_include_prefix = "src",
+    linkopts = LINK_OPTS,
+    visibility = ["//visibility:public"],
+    deps = [
+        ":protobuf_lib",
+        ":protobuf_lite",
+    ],
+)
+
+cc_library(
+    name = "protobuf",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":protobuf_importer",
+        ":protobuf_lib",
+    ],
 )
 
 # This provides just the header files for use in projects that need to build
@@ -243,10 +282,10 @@ cc_library(
 cc_library(
     name = "protobuf_headers",
     hdrs = glob([
-        "src/**/*.h",
-        "src/**/*.inc",
+        "src/google/protobuf/**/*.h",
+        "src/google/protobuf/**/*.inc",
     ]),
-    includes = ["src/"],
+    strip_include_prefix = "src",
     visibility = ["//visibility:public"],
 )
 
@@ -422,7 +461,7 @@ cc_library(
         "src/google/protobuf/compiler/zip_writer.cc",
     ],
     copts = COPTS,
-    includes = ["src/"],
+    strip_include_prefix = "src",
     linkopts = LINK_OPTS,
     visibility = ["//visibility:public"],
     deps = [":protobuf"],
@@ -512,51 +551,49 @@ cc_proto_library(
     deps = [":cc_wkt_protos"],
 )
 
-COMMON_TEST_SRCS = [
-    # AUTOGEN(common_test_srcs)
-    "src/google/protobuf/arena_test_util.cc",
-    "src/google/protobuf/map_test_util.inc",
-    "src/google/protobuf/test_util.cc",
-    "src/google/protobuf/test_util.inc",
-    "src/google/protobuf/testing/file.cc",
-    "src/google/protobuf/testing/googletest.cc",
-]
-
 cc_binary(
     name = "test_plugin",
     srcs = [
         # AUTOGEN(test_plugin_srcs)
         "src/google/protobuf/compiler/mock_code_generator.cc",
         "src/google/protobuf/compiler/test_plugin.cc",
-        "src/google/protobuf/testing/file.cc",
     ],
     deps = [
         ":protobuf",
+        ":protobuf_test_utils",
         ":protoc_lib",
         "//external:gtest",
     ],
 )
 
-cc_test(
-    name = "win32_test",
-    srcs = ["src/google/protobuf/io/io_win32_unittest.cc"],
-    tags = [
-        "manual",
-        "windows",
+cc_library(
+    name = "protobuf_test_utils",
+    srcs = [
+        # AUTOGEN(common_test_srcs)
+        "src/google/protobuf/arena_test_util.cc",
+        "src/google/protobuf/map_test_util.inc",
+        "src/google/protobuf/test_util.cc",
+        "src/google/protobuf/test_util.inc",
+        "src/google/protobuf/testing/file.cc",
+        "src/google/protobuf/testing/googletest.cc",
     ],
+    hdrs = glob([
+        "src/google/protobuf/testing/*.h",
+    ]),
+    copts = COPTS,
+    strip_include_prefix = "src",
+    linkopts = LINK_OPTS,
     deps = [
-        ":protobuf_lite",
-        "//external:gtest_main",
+        ":protobuf",
+        ":cc_test_protos",
+        "//external:gtest",
     ],
 )
 
 cc_test(
-    name = "protobuf_test",
-    srcs = COMMON_TEST_SRCS + [
-        # AUTOGEN(test_srcs)
-        "src/google/protobuf/any_test.cc",
-        "src/google/protobuf/arena_unittest.cc",
-        "src/google/protobuf/arenastring_unittest.cc",
+    name = "protoc_test",
+    srcs = [
+        # AUTOGEN(protoc_test_srcs)
         "src/google/protobuf/compiler/annotation_test_util.cc",
         "src/google/protobuf/compiler/cpp/cpp_bootstrap_unittest.cc",
         "src/google/protobuf/compiler/cpp/cpp_move_unittest.cc",
@@ -574,6 +611,39 @@ cc_test(
         "src/google/protobuf/compiler/parser_unittest.cc",
         "src/google/protobuf/compiler/python/python_plugin_unittest.cc",
         "src/google/protobuf/compiler/ruby/ruby_generator_unittest.cc",
+    ] + select({
+        ":msvc": [],
+        "//conditions:default": [
+            # AUTOGEN(non_msvc_test_srcs)
+            "src/google/protobuf/compiler/command_line_interface_unittest.cc",
+        ],
+    }),
+    copts = COPTS,
+    data = [
+        ":test_plugin",
+    ] + glob([
+        "src/google/protobuf/**/*",
+        # Files for csharp_bootstrap_unittest.cc.
+        "conformance/**/*",
+        "csharp/src/**/*",
+    ]),
+    linkopts = LINK_OPTS,
+    deps = [
+        ":cc_test_protos",
+        ":protobuf",
+        ":protobuf_test_utils",
+        ":protoc_lib",
+        "//external:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "protobuf_test",
+    srcs = [
+        # AUTOGEN(test_srcs)
+        "src/google/protobuf/any_test.cc",
+        "src/google/protobuf/arena_unittest.cc",
+        "src/google/protobuf/arenastring_unittest.cc",
         "src/google/protobuf/descriptor_database_unittest.cc",
         "src/google/protobuf/descriptor_unittest.cc",
         "src/google/protobuf/drop_unknown_fields_test.cc",
@@ -626,32 +696,22 @@ cc_test(
         "src/google/protobuf/util/type_resolver_util_test.cc",
         "src/google/protobuf/well_known_types_unittest.cc",
         "src/google/protobuf/wire_format_unittest.cc",
-    ] + select({
-        "//conditions:default": [
-            # AUTOGEN(non_msvc_test_srcs)
-            "src/google/protobuf/compiler/command_line_interface_unittest.cc",
-        ],
-        ":msvc": [],
-    }),
+    ],
     copts = COPTS,
-    data = [
-        ":test_plugin",
-    ] + glob([
+    data = glob([
         "src/google/protobuf/**/*",
         # Files for csharp_bootstrap_unittest.cc.
         "conformance/**/*",
         "csharp/src/**/*",
     ]),
-    includes = [
-        "src/",
-    ],
     linkopts = LINK_OPTS,
     deps = [
         ":cc_test_protos",
         ":protobuf",
+        ":protobuf_test_utils",
         ":protoc_lib",
         "//external:gtest_main",
-    ] + PROTOBUF_DEPS,
+    ],
 )
 
 ################################################################################
@@ -918,7 +978,7 @@ proto_lang_toolchain(
     name = "cc_toolchain",
     blacklisted_protos = cc_toolchain_blacklisted_protos,
     command_line = "--cpp_out=$(OUT)",
-    runtime = ":protobuf",
+    runtime = ":protobuf_lib",
     visibility = ["//visibility:public"],
 )
 
@@ -1088,7 +1148,7 @@ cc_library(
     name = "jsoncpp",
     srcs = ["conformance/third_party/jsoncpp/jsoncpp.cpp"],
     hdrs = ["conformance/third_party/jsoncpp/json.h"],
-    includes = ["conformance"],
+    strip_include_prefix = "conformance",
 )
 
 cc_library(

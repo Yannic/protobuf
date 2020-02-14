@@ -131,23 +131,6 @@ set(tests_files
   ${protobuf_source_dir}/src/google/protobuf/any_test.cc
   ${protobuf_source_dir}/src/google/protobuf/arena_unittest.cc
   ${protobuf_source_dir}/src/google/protobuf/arenastring_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/annotation_test_util.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_bootstrap_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_move_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_plugin_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_unittest.inc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/metadata_test.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/csharp/csharp_bootstrap_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/csharp/csharp_generator_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/importer_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/java/java_doc_comment_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/java/java_plugin_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/mock_code_generator.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/objectivec/objectivec_helpers_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/parser_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/python/python_plugin_unittest.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/ruby/ruby_generator_unittest.cc
   ${protobuf_source_dir}/src/google/protobuf/descriptor_database_unittest.cc
   ${protobuf_source_dir}/src/google/protobuf/descriptor_unittest.cc
   ${protobuf_source_dir}/src/google/protobuf/drop_unknown_fields_test.cc
@@ -206,9 +189,30 @@ set(non_msvc_tests_files
   ${protobuf_source_dir}/src/google/protobuf/compiler/command_line_interface_unittest.cc
 )
 
+set(protoc_test_files
+  ${protobuf_source_dir}/src/google/protobuf/compiler/annotation_test_util.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_bootstrap_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_move_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_plugin_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/cpp_unittest.inc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/cpp/metadata_test.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/csharp/csharp_bootstrap_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/csharp/csharp_generator_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/importer_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/java/java_doc_comment_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/java/java_plugin_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/mock_code_generator.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/objectivec/objectivec_helpers_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/parser_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/python/python_plugin_unittest.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/ruby/ruby_generator_unittest.cc
+)
+
 set(all_tests_files
   ${tests_files}
   ${non_msvc_tests_files}
+  ${protoc_test_files}
 )
 
 if(protobuf_ABSOLUTE_TEST_PLUGIN_PATH)

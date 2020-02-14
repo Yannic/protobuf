@@ -27,6 +27,7 @@ bazel test --copt=-Werror --host_copt=-Werror \
   //:build_files_updated_unittest \
   //java/... \
   //:protobuf_test \
+  //:protoc_test \
   @com_google_protobuf//:cc_proto_blacklist_test
 trap - EXIT
 
