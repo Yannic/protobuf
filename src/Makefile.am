@@ -224,8 +224,16 @@ if HAVE_LD_VERSION_SCRIPT
 libprotobuf_la_LDFLAGS += -Wl,--version-script=$(srcdir)/libprotobuf.map
 EXTRA_libprotobuf_la_DEPENDENCIES = libprotobuf.map
 endif
+
+protobuf_importer_SOURCES =                                    \
+  google/protobuf/compiler/importer.cc                         \
+  google/protobuf/compiler/importer.h                          \
+  google/protobuf/compiler/parser.cc                           \
+  google/protobuf/compiler/parser.h                            \
+
 libprotobuf_la_SOURCES =                                       \
   $(libprotobuf_lite_la_SOURCES)                               \
+  $(protobuf_importer_SOURCES)                                 \
   google/protobuf/any.pb.cc                                    \
   google/protobuf/api.pb.cc                                    \
   google/protobuf/any.cc                                       \
@@ -258,8 +266,6 @@ libprotobuf_la_SOURCES =                                       \
   google/protobuf/io/gzip_stream.cc                            \
   google/protobuf/io/printer.cc                                \
   google/protobuf/io/tokenizer.cc                              \
-  google/protobuf/compiler/importer.cc                         \
-  google/protobuf/compiler/parser.cc                           \
   google/protobuf/util/delimited_message_util.cc               \
   google/protobuf/util/field_comparator.cc                     \
   google/protobuf/util/field_mask_util.cc                      \
@@ -728,6 +734,30 @@ protobuf_test_CXXFLAGS = $(NO_OPT_CXXFLAGS)
 # Doesn't pass on Windows with MSVC
 NON_MSVC_TEST_SOURCES =                                        \
   google/protobuf/compiler/command_line_interface_unittest.cc
+
+protoc_test_SOURCES =                                          \
+  google/protobuf/compiler/annotation_test_util.h              \
+  google/protobuf/compiler/annotation_test_util.cc             \
+  google/protobuf/compiler/importer_unittest.cc                \
+  google/protobuf/compiler/mock_code_generator.cc              \
+  google/protobuf/compiler/mock_code_generator.h               \
+  google/protobuf/compiler/parser_unittest.cc                  \
+  google/protobuf/compiler/cpp/cpp_bootstrap_unittest.cc       \
+  google/protobuf/compiler/cpp/cpp_move_unittest.cc            \
+  google/protobuf/compiler/cpp/cpp_unittest.h                  \
+  google/protobuf/compiler/cpp/cpp_unittest.cc                 \
+  google/protobuf/compiler/cpp/cpp_unittest.inc                \
+  google/protobuf/compiler/cpp/cpp_plugin_unittest.cc          \
+  google/protobuf/compiler/cpp/metadata_test.cc                \
+  google/protobuf/compiler/java/java_plugin_unittest.cc        \
+  google/protobuf/compiler/java/java_doc_comment_unittest.cc   \
+  google/protobuf/compiler/objectivec/objectivec_helpers_unittest.cc \
+  google/protobuf/compiler/python/python_plugin_unittest.cc    \
+  google/protobuf/compiler/ruby/ruby_generator_unittest.cc     \
+  google/protobuf/compiler/csharp/csharp_bootstrap_unittest.cc \
+  google/protobuf/compiler/csharp/csharp_generator_unittest.cc \
+  $(NON_MSVC_TEST_SOURCES)
+
 protobuf_test_SOURCES =                                        \
   google/protobuf/stubs/bytestream_unittest.cc                 \
   google/protobuf/stubs/common_unittest.cc                     \
@@ -771,26 +801,6 @@ protobuf_test_SOURCES =                                        \
   google/protobuf/io/printer_unittest.cc                       \
   google/protobuf/io/tokenizer_unittest.cc                     \
   google/protobuf/io/zero_copy_stream_unittest.cc              \
-  google/protobuf/compiler/annotation_test_util.h              \
-  google/protobuf/compiler/annotation_test_util.cc             \
-  google/protobuf/compiler/importer_unittest.cc                \
-  google/protobuf/compiler/mock_code_generator.cc              \
-  google/protobuf/compiler/mock_code_generator.h               \
-  google/protobuf/compiler/parser_unittest.cc                  \
-  google/protobuf/compiler/cpp/cpp_bootstrap_unittest.cc       \
-  google/protobuf/compiler/cpp/cpp_move_unittest.cc            \
-  google/protobuf/compiler/cpp/cpp_unittest.h                  \
-  google/protobuf/compiler/cpp/cpp_unittest.cc                 \
-  google/protobuf/compiler/cpp/cpp_unittest.inc                \
-  google/protobuf/compiler/cpp/cpp_plugin_unittest.cc          \
-  google/protobuf/compiler/cpp/metadata_test.cc                \
-  google/protobuf/compiler/java/java_plugin_unittest.cc        \
-  google/protobuf/compiler/java/java_doc_comment_unittest.cc   \
-  google/protobuf/compiler/objectivec/objectivec_helpers_unittest.cc \
-  google/protobuf/compiler/python/python_plugin_unittest.cc    \
-  google/protobuf/compiler/ruby/ruby_generator_unittest.cc     \
-  google/protobuf/compiler/csharp/csharp_bootstrap_unittest.cc \
-  google/protobuf/compiler/csharp/csharp_generator_unittest.cc \
   google/protobuf/util/delimited_message_util_test.cc          \
   google/protobuf/util/field_comparator_test.cc                \
   google/protobuf/util/field_mask_util_test.cc                 \
@@ -804,8 +814,9 @@ protobuf_test_SOURCES =                                        \
   google/protobuf/util/message_differencer_unittest.cc         \
   google/protobuf/util/time_util_test.cc                       \
   google/protobuf/util/type_resolver_util_test.cc              \
-  $(NON_MSVC_TEST_SOURCES)                                     \
-  $(COMMON_TEST_SOURCES)
+  $(COMMON_TEST_SOURCES)                                       \
+  $(protoc_test_SOURCES)
+
 nodist_protobuf_test_SOURCES = $(protoc_outputs)
 $(am_protobuf_test_OBJECTS): unittest_proto_middleman
 
@@ -872,9 +883,8 @@ test_plugin_LDADD = $(PTHREAD_LIBS) libprotobuf.la libprotoc.la \
 test_plugin_CPPFLAGS = -I$(GOOGLETEST_SRC_DIR)/include
 test_plugin_SOURCES =                                          \
   google/protobuf/compiler/mock_code_generator.cc              \
-  google/protobuf/testing/file.cc                              \
-  google/protobuf/testing/file.h                               \
-  google/protobuf/compiler/test_plugin.cc
+  google/protobuf/compiler/test_plugin.cc                      \
+  $(COMMON_TEST_SOURCES)
 
 if HAVE_ZLIB
 zcgzip_LDADD = $(PTHREAD_LIBS) libprotobuf.la

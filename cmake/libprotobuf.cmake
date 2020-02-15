@@ -1,9 +1,7 @@
-set(libprotobuf_files
+set(protobuf_srcs
   ${protobuf_source_dir}/src/google/protobuf/any.cc
   ${protobuf_source_dir}/src/google/protobuf/any.pb.cc
   ${protobuf_source_dir}/src/google/protobuf/api.pb.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/importer.cc
-  ${protobuf_source_dir}/src/google/protobuf/compiler/parser.cc
   ${protobuf_source_dir}/src/google/protobuf/descriptor.cc
   ${protobuf_source_dir}/src/google/protobuf/descriptor.pb.cc
   ${protobuf_source_dir}/src/google/protobuf/descriptor_database.cc
@@ -51,6 +49,50 @@ set(libprotobuf_files
   ${protobuf_source_dir}/src/google/protobuf/util/type_resolver_util.cc
   ${protobuf_source_dir}/src/google/protobuf/wire_format.cc
   ${protobuf_source_dir}/src/google/protobuf/wrappers.pb.cc
+)
+
+set(protobuf_hdrs
+  ${protobuf_source_dir}/src/google/protobuf/generated_message_table_driven_lite.h
+  ${protobuf_source_dir}/src/google/protobuf/reflection_internal.h
+  ${protobuf_source_dir}/src/google/protobuf/stubs/substitute.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/constants.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/datapiece.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/default_value_objectwriter.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/error_listener.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/expecting_objectwriter.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/field_mask_utility.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/json_escaping.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/json_objectwriter.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/json_stream_parser.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/location_tracker.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/mock_error_listener.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/object_location_tracker.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/object_source.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/object_writer.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/proto_writer.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/protostream_objectsource.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/protostream_objectwriter.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/structured_objectwriter.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/type_info.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/type_info_test_helper.h
+  ${protobuf_source_dir}/src/google/protobuf/util/internal/utility.h
+)
+
+set(protobuf_importer_srcs
+  ${protobuf_source_dir}/src/google/protobuf/compiler/importer.cc
+  ${protobuf_source_dir}/src/google/protobuf/compiler/parser.cc
+)
+
+set(protobuf_importer_hdrs
+  ${protobuf_source_dir}/src/google/protobuf/compiler/importer.h
+  ${protobuf_source_dir}/src/google/protobuf/compiler/parser.h
+)
+
+set(libprotobuf_files
+  ${protobuf_hdrs}
+  ${protobuf_srcs}
+  ${protobuf_importer_hdrs}
+  ${protobuf_importer_srcs}
 )
 
 set(libprotobuf_includes
