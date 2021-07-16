@@ -211,9 +211,14 @@ void ImmutableMessageGenerator::GenerateFieldAccessorTable(
       "  com.google.protobuf.GeneratedMessage$ver$.FieldAccessorTable\n"
       "    internal_$identifier$_fieldAccessorTable;\n");
 
+  // The following bytecode_estimate calculation logic must stay in sync with
+  // the similar logic in the GenerateFieldAccessorTableInitializer method below
+  // to make sure that the generated static final fields are initialized  in the
+  // static initialization block directly.
+  //
   // 6 bytes per field and oneof
   *bytecode_estimate +=
-      10 + 6 * descriptor_->field_count() + 6 * oneofs_.size();
+      10 + 6 * descriptor_->field_count() + 6 * descriptor_->oneof_decl_count();
 }
 
 int ImmutableMessageGenerator::GenerateFieldAccessorTableInitializer(
@@ -226,6 +231,10 @@ int ImmutableMessageGenerator::GenerateFieldAccessorTableInitializer(
       "    new java.lang.String[] { ",
       "identifier", UniqueFileScopeIdentifier(descriptor_), "ver",
       GeneratedCodeVersionSuffix());
+  // All the bytecode_estimate calculation logic in this method must stay in
+  // sync with the similar logic in the GenerateFieldAccessorTable method
+  // above. See the corresponding comment in GenerateFieldAccessorTable for
+  // details.
   for (int i = 0; i < descriptor_->field_count(); i++) {
     const FieldDescriptor* field = descriptor_->field(i);
     const FieldGeneratorInfo* info = context_->GetFieldGeneratorInfo(field);
@@ -1358,6 +1367,41 @@ void ImmutableMessageGenerator::GenerateInitializers(io::Printer* printer) {
   }
 }
 
+// ===================================================================
+void ImmutableMessageGenerator::GenerateMutableCopy(io::Printer* printer) {
+  printer->Print(
+      "protected com.google.protobuf.MutableMessage\n"
+      "    internalMutableDefault() {\n"
+      "  return MutableDefaultLoader.get();\n"
+      "}\n"
+      "\n"
+      "private static final class MutableDefaultLoader {\n"
+      "  private static final java.lang.Object defaultOrRuntimeException;\n"
+      "  static {\n"
+      "    java.lang.Object local;\n"
+      "    try {\n"
+      "      local = internalMutableDefault(\"$mutable_name$\");\n"
+      "    } catch (java.lang.RuntimeException e) {\n"
+      "      local = e;\n"
+      "    }\n"
+      "    defaultOrRuntimeException = local;\n"
+      "  }\n"
+      "\n"
+      "  private MutableDefaultLoader() {}\n"
+      "\n"
+      "  public static com.google.protobuf.MutableMessage get() {\n"
+      "    if (defaultOrRuntimeException\n"
+      "         instanceof java.lang.RuntimeException) {\n"
+      "      throw (java.lang.RuntimeException) defaultOrRuntimeException;\n"
+      "    }\n"
+      "    return\n"
+      "        (com.google.protobuf.MutableMessage) "
+      "defaultOrRuntimeException;\n"
+      "  }\n"
+      "}\n",
+      "mutable_name", name_resolver_->GetJavaMutableClassName(descriptor_));
+}
+
 void ImmutableMessageGenerator::GenerateKotlinDsl(io::Printer* printer) const {
   printer->Print(
       "@kotlin.OptIn"
@@ -1365,7 +1409,7 @@ void ImmutableMessageGenerator::GenerateKotlinDsl(io::Printer* printer) const {
       "@com.google.protobuf.kotlin.ProtoDslMarker\n");
   printer->Print(
       "class Dsl private constructor(\n"
-      "  @kotlin.jvm.JvmField private val _builder: $message$.Builder\n"
+      "  private val _builder: $message$.Builder\n"
       ") {\n"
       "  companion object {\n"
       "    @kotlin.jvm.JvmSynthetic\n"

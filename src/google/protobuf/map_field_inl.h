@@ -285,6 +285,14 @@ void MapField<Derived, Key, T, kKeyFieldType, kValueFieldType>::Swap(
 template <typename Derived, typename Key, typename T,
           WireFormatLite::FieldType kKeyFieldType,
           WireFormatLite::FieldType kValueFieldType>
+void MapField<Derived, Key, T, kKeyFieldType,
+              kValueFieldType>::UnsafeShallowSwap(MapFieldBase* other) {
+  InternalSwap(down_cast<MapField*>(other));
+}
+
+template <typename Derived, typename Key, typename T,
+          WireFormatLite::FieldType kKeyFieldType,
+          WireFormatLite::FieldType kValueFieldType>
 void MapField<Derived, Key, T, kKeyFieldType, kValueFieldType>::InternalSwap(
     MapField* other) {
   MapFieldBase::InternalSwap(other);
@@ -297,13 +305,9 @@ template <typename Derived, typename Key, typename T,
 void MapField<Derived, Key, T, kKeyFieldType,
               kValueFieldType>::SyncRepeatedFieldWithMapNoLock() const {
   if (this->MapFieldBase::repeated_field_ == NULL) {
-    if (this->MapFieldBase::arena_ == NULL) {
-      this->MapFieldBase::repeated_field_ = new RepeatedPtrField<Message>();
-    } else {
-      this->MapFieldBase::repeated_field_ =
-          Arena::CreateMessage<RepeatedPtrField<Message> >(
-              this->MapFieldBase::arena_);
-    }
+    this->MapFieldBase::repeated_field_ =
+        Arena::CreateMessage<RepeatedPtrField<Message> >(
+            this->MapFieldBase::arena_);
   }
   const Map<Key, T>& map = impl_.GetMap();
   RepeatedPtrField<EntryType>* repeated_field =
