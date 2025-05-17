@@ -515,8 +515,11 @@ bool IsV2EnabledForMessage(const Descriptor* descriptor,
                            const Options& options);
 
 #ifdef PROTOBUF_INTERNAL_V2_EXPERIMENT
+bool ShouldGenerateV2Code(const Descriptor* descriptor, const Options& options);
+
 // Returns true if a field can be batched.
 bool IsEligibleForV2Batching(const FieldDescriptor* field);
+bool HasFieldEligibleForV2Batching(const Descriptor* descriptor);
 #endif  // PROTOBUF_INTERNAL_V2_EXPERIMENT
 
 // Does this file have generated parsing, serialization, and other
@@ -1140,6 +1143,8 @@ void GenerateUtf8CheckCodeForString(io::Printer* p,
 void GenerateUtf8CheckCodeForCord(io::Printer* p, const FieldDescriptor* field,
                                   const Options& options, bool for_parse,
                                   absl::string_view parameters);
+
+bool IsStrictUtf8String(const FieldDescriptor* field, const Options& options);
 
 inline bool ShouldGenerateExternSpecializations(const Options& options) {
   // For OSS we omit the specializations to reduce codegen size.

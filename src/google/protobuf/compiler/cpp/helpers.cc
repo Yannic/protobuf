@@ -1339,6 +1339,12 @@ bool IsV2EnabledForMessage(const Descriptor* descriptor,
 }
 
 #ifdef PROTOBUF_INTERNAL_V2_EXPERIMENT
+bool ShouldGenerateV2Code(const Descriptor* descriptor,
+                          const Options& options) {
+  return !options.opensource_runtime && !options.bootstrap &&
+         !HasSimpleBaseClass(descriptor, options);
+}
+
 bool IsEligibleForV2Batching(const FieldDescriptor* field) {
   // Non-message fields whose numbers fit into 2B should be considered for
   // batching although the actual batching depends on the current batching, the
@@ -1346,6 +1352,13 @@ bool IsEligibleForV2Batching(const FieldDescriptor* field) {
   return field->cpp_type() != FieldDescriptor::CPPTYPE_MESSAGE &&
          !field->is_map() &&
          field->number() < std::numeric_limits<uint16_t>::max();
+}
+
+bool HasFieldEligibleForV2Batching(const Descriptor* descriptor) {
+  for (const auto& field : FieldRange(descriptor)) {
+    if (IsEligibleForV2Batching(field)) return true;
+  }
+  return false;
 }
 #endif  // PROTOBUF_INTERNAL_V2_EXPERIMENT
 
@@ -1454,6 +1467,15 @@ void NamespaceOpener::ChangeTo(absl::string_view name,
   }
 
   name_stack_ = std::move(new_stack);
+}
+
+bool IsStrictUtf8String(const FieldDescriptor* field, const Options& options) {
+  if (field->type() != FieldDescriptor::TYPE_STRING) return false;
+
+  bool is_lite =
+      GetOptimizeFor(field->file(), options) == FileOptions::LITE_RUNTIME;
+  return internal::cpp::GetUtf8CheckMode(field, is_lite) ==
+         internal::cpp::Utf8CheckMode::kStrict;
 }
 
 static void GenerateUtf8CheckCode(io::Printer* p, const FieldDescriptor* field,
