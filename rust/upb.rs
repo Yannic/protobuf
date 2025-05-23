@@ -7,10 +7,11 @@
 
 //! UPB FFI wrapper code for use by Rust Protobuf.
 
-use crate::__internal::{Enum, Private, SealedInternal};
+use crate::__internal::{Enum, MatcherEq, Private, SealedInternal};
 use crate::{
-    IntoProxied, Map, MapIter, MapMut, MapView, Message, Mut, ProtoBytes, ProtoStr, ProtoString,
-    Proxied, ProxiedInMapValue, ProxiedInRepeated, Repeated, RepeatedMut, RepeatedView, View,
+    AsView, IntoProxied, Map, MapIter, MapMut, MapView, Message, MessageViewInterop, Mut,
+    ProtoBytes, ProtoStr, ProtoString, Proxied, ProxiedInMapValue, ProxiedInRepeated, Repeated,
+    RepeatedMut, RepeatedView, View,
 };
 use core::fmt::Debug;
 use std::mem::{size_of, ManuallyDrop, MaybeUninit};
@@ -32,6 +33,18 @@ pub type RawMessage = upb::RawMessage;
 pub type RawRepeatedField = upb::RawArray;
 pub type RawMap = upb::RawMap;
 pub type PtrAndLen = upb::StringView;
+
+// This struct represents a raw minitable pointer. We need it to be Send and Sync so that we can
+// store it in a static OnceLock for lazy initialization of minitables. It should not be used for
+// any other purpose.
+pub struct MiniTablePtr(pub *mut upb_MiniTable);
+unsafe impl Send for MiniTablePtr {}
+unsafe impl Sync for MiniTablePtr {}
+
+// Same as above, but for enum minitables.
+pub struct MiniTableEnumPtr(pub *const upb_MiniTableEnum);
+unsafe impl Send for MiniTableEnumPtr {}
+unsafe impl Sync for MiniTableEnumPtr {}
 
 impl From<&ProtoStr> for PtrAndLen {
     fn from(s: &ProtoStr) -> Self {
@@ -59,6 +72,12 @@ impl ScratchSpace {
         static ZEROED_BLOCK: ScratchSpace = ScratchSpace([0; UPB_SCRATCH_SPACE_BYTES]);
         NonNull::from(&ZEROED_BLOCK).cast()
     }
+}
+
+thread_local! {
+    // We need to avoid dropping this Arena, because we use it to build mini tables that
+    // effectively have 'static lifetimes.
+    pub static THREAD_LOCAL_ARENA: ManuallyDrop<Arena> = ManuallyDrop::new(Arena::new());
 }
 
 #[doc(hidden)]
@@ -592,7 +611,7 @@ pub trait UpbTypeConversions: Proxied {
     /// - `msg` must be the correct variant for `Self`.
     /// - `msg` pointers must point to memory valid for `'msg` lifetime.
     #[allow(unused_variables)]
-    unsafe fn from_message_mut<'msg>(msg: *mut upb_Message, arena: &'msg Arena) -> Mut<'msg, Self>
+    unsafe fn from_message_mut<'msg>(msg: RawMessage, arena: &'msg Arena) -> Mut<'msg, Self>
     where
         Self: Message,
     {
@@ -794,11 +813,10 @@ where
                 <Key as UpbTypeConversions>::to_message_value(key),
             )
         };
-        if val.is_null() {
-            return None;
-        }
         // SAFETY: The lifetime of the MapMut is guaranteed to outlive the returned Mut.
-        Some(unsafe { <Self as UpbTypeConversions>::from_message_mut(val, map.arena(Private)) })
+        NonNull::new(val).map(|msg| unsafe {
+            <Self as UpbTypeConversions>::from_message_mut(msg, map.arena(Private))
+        })
     }
 
     fn map_remove(mut map: MapMut<Key, Self>, key: View<'_, Key>) -> bool {
@@ -854,5 +872,22 @@ pub unsafe fn upb_Map_InsertAndReturnIfInserted(
         upb::MapInsertStatus::Inserted => true,
         upb::MapInsertStatus::Replaced => false,
         upb::MapInsertStatus::OutOfMemory => panic!("map arena is out of memory"),
+    }
+}
+
+impl<T> MatcherEq for T
+where
+    Self: AssociatedMiniTable + AsView + Debug,
+    for<'a> View<'a, <Self as AsView>::Proxied>: MessageViewInterop<'a>,
+{
+    fn matches(&self, o: &Self) -> bool {
+        unsafe {
+            upb_Message_IsEqual(
+                NonNull::new_unchecked(self.as_view().__unstable_as_raw_message() as *mut _),
+                NonNull::new_unchecked(o.as_view().__unstable_as_raw_message() as *mut _),
+                Self::mini_table(),
+                0,
+            )
+        }
     }
 }

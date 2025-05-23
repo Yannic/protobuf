@@ -135,6 +135,9 @@ class CppGenerator;
 // Defined in helpers.h
 class Formatter;
 }  // namespace cpp
+namespace java {
+class MemoizeProjection;
+}  // namespace java
 }  // namespace compiler
 
 namespace descriptor_unittest {
@@ -1126,6 +1129,7 @@ class PROTOBUF_EXPORT FieldDescriptor : private internal::SymbolBase,
 
   // Returns true if this field was syntactically written with "optional" in the
   // .proto file. Excludes singular proto3 fields that do not have a label.
+  ABSL_DEPRECATED("Use has_presence() instead.")
   bool has_optional_keyword() const;
 
   // Get the merged features that apply to this field.  These are specified in
@@ -2528,6 +2532,7 @@ class PROTOBUF_EXPORT DescriptorPool {
   friend class ::google::protobuf::compiler::CommandLineInterface;
   friend class TextFormat;
   friend Reflection;
+  friend class ::google::protobuf::compiler::java::MemoizeProjection;
 
   struct MemoBase {
     virtual ~MemoBase() = default;
@@ -2537,14 +2542,24 @@ class PROTOBUF_EXPORT DescriptorPool {
     T value;
   };
 
+  template <typename Desc>
+  static const DescriptorPool* GetPool(const Desc* descriptor) {
+    return descriptor->file()->pool();
+  }
+
+  static const DescriptorPool* GetPool(const FileDescriptor* descriptor) {
+    return descriptor->pool();
+  }
+
   // Memoize a projection of a descriptor. This is used to cache the results of
   // calling a function on a descriptor, used for expensive descriptor
   // calculations.
   template <typename Desc, typename Func>
   static const auto& MemoizeProjection(const Desc* descriptor, Func func) {
     using ResultT = std::decay_t<decltype(func(descriptor))>;
-    auto* pool = descriptor->file()->pool();
-    static_assert(std::is_empty_v<Func>);
+    auto* pool = GetPool(descriptor);
+    static_assert(std::is_empty_v<Func> ||
+                  std::is_function_v<std::remove_pointer_t<Func>>);
     // This static bool is unique per-Func, so its address can be used as a key.
     static bool type_key;
     auto key = std::pair<const void*, const void*>(descriptor, &type_key);

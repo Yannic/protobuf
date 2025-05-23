@@ -11,6 +11,7 @@
 #include "python/descriptor.h"
 #include "python/extension_dict.h"
 #include "python/map.h"
+#include "python/protobuf.h"
 #include "python/repeated.h"
 #include "upb/base/string_view.h"
 #include "upb/message/compare.h"
@@ -45,12 +46,6 @@ typedef struct {
   size_t type_basicsize;       // sizeof(PyHeapTypeObject)
   traverseproc type_traverse;  // PyTypeObject.tp_traverse
   inquiry type_clear;          // PyTypeObject.tp_clear
-
-  // While we can refer to PY_VERSION_HEX in the limited API, this will give us
-  // the version of Python we were compiled against, which may be different
-  // than the version we are dynamically linked against.  Here we want the
-  // version that is actually running in this process.
-  long python_version_hex;  // PY_VERSION_HEX
 } PyUpb_CPythonBits;
 
 // A global containing the values for this process.
@@ -144,7 +139,6 @@ static bool PyUpb_CPythonBits_Init(PyUpb_CPythonBits* bits) {
 
   sys = PyImport_ImportModule("sys");
   hex_version = PyObject_GetAttrString(sys, "hexversion");
-  bits->python_version_hex = PyLong_AsLong(hex_version);
   ret = true;
 
 err:
@@ -459,13 +453,16 @@ static bool PyUpb_Message_InitMessageAttribute(PyObject* _self, PyObject* name,
     const upb_MessageDef* msgdef = upb_FieldDef_MessageSubDef(field);
     if (upb_MessageDef_WellKnownType(msgdef) == kUpb_WellKnown_Struct) {
       ok = PyObject_CallMethod(submsg, "_internal_assign", "O", value);
-      if (!ok && PyDict_Size(value) == 1 &&
-          PyDict_Contains(value, PyUnicode_FromString("fields"))) {
-        // Fall back to init as normal message field.
-        PyErr_Clear();
-        PyObject* tmp = PyUpb_Message_Clear((PyUpb_Message*)submsg);
-        Py_DECREF(tmp);
-        ok = PyUpb_Message_InitAttributes(submsg, NULL, value) >= 0;
+      if (!ok && PyDict_Size(value) == 1) {
+        PyObject* fields_str = PyUnicode_FromString("fields");
+        if (PyDict_Contains(value, fields_str)) {
+          // Fall back to init as normal message field.
+          PyErr_Clear();
+          PyObject* tmp = PyUpb_Message_Clear((PyUpb_Message*)submsg);
+          Py_DECREF(tmp);
+          ok = PyUpb_Message_InitAttributes(submsg, NULL, value) >= 0;
+        }
+        Py_DECREF(fields_str);
       }
     } else {
       ok = PyUpb_Message_InitAttributes(submsg, NULL, value) >= 0;
@@ -836,18 +833,7 @@ static void PyUpb_Message_Dealloc(PyObject* _self) {
   }
 
   Py_DECREF(self->arena);
-
-  // We do not use PyUpb_Dealloc() here because Message is a base type and for
-  // base types there is a bug we have to work around in this case (see below).
-  PyTypeObject* tp = Py_TYPE(self);
-  freefunc tp_free = PyType_GetSlot(tp, Py_tp_free);
-  tp_free(self);
-
-  if (cpython_bits.python_version_hex >= 0x03080000) {
-    // Prior to Python 3.8 there is a bug where deallocating the type here would
-    // lead to a double-decref: https://bugs.python.org/issue37879
-    Py_DECREF(tp);
-  }
+  PyUpb_Dealloc(self);
 }
 
 PyObject* PyUpb_Message_Get(upb_Message* u_msg, const upb_MessageDef* m,
@@ -992,10 +978,12 @@ int PyUpb_Message_SetFieldValue(PyObject* _self, const upb_FieldDef* field,
       if (PyObject_HasAttrString(sub_message, "_internal_assign")) {
         PyObject* ok =
             PyObject_CallMethod(sub_message, "_internal_assign", "O", value);
+        Py_DECREF(sub_message);
         if (!ok) return -1;
         Py_DECREF(ok);
         return 0;
       }
+      Py_DECREF(sub_message);
     }
     PyErr_Format(exc,
                  "Assignment not allowed to message "
@@ -1125,7 +1113,9 @@ static PyObject* PyUpb_Message_Contains(PyObject* _self, PyObject* arg) {
       PyUpb_Message* self = (void*)_self;
       if (PyUpb_Message_IsStub(self)) Py_RETURN_FALSE;
       PyObject* items = PyObject_CallMethod(_self, "items", NULL);
-      return PyBool_FromLong(PySequence_Contains(items, arg));
+      int ret = PySequence_Contains(items, arg);
+      Py_DECREF(items);
+      return PyBool_FromLong(ret);
     }
     default:
       // For other messages, check with HasField.
